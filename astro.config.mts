@@ -1,8 +1,9 @@
 import { defineConfig } from 'astro/config';
 import react from "@astrojs/react";
-
-import node from "@astrojs/node";
 import type { ViteUserConfig } from 'astro/config';
+
+// import node from "@astrojs/node";
+import vercel from '@astrojs/vercel/serverless';
 
 type ExtractPluginOption<T> = T extends (infer U)[] ? U : never;
 
@@ -11,14 +12,12 @@ function viteAlsPlugin(): ExtractPluginOption<NonNullable<ViteUserConfig['plugin
   const useStoreModuleId = 'virtual:astro/use-store';
   const resolvedUseStoreModuleId = '\0' + useStoreModuleId;
   const resolvedAlsModuleId = '\0' + alsModuleId;
-
   return {
     name: 'vite-als-plugin',
     resolveId(id) {
       if (id === useStoreModuleId) {
         return resolvedUseStoreModuleId;
       }
-
       if (id === alsModuleId) {
         return resolvedAlsModuleId;
       }
@@ -30,10 +29,9 @@ function viteAlsPlugin(): ExtractPluginOption<NonNullable<ViteUserConfig['plugin
             import { AsyncLocalStorage } from "node:async_hooks";
 
             export const authAsyncStorage = new AsyncLocalStorage();
-          `
+          `;
         }
       }
-
       if (id === resolvedUseStoreModuleId) {
         if (opts?.ssr) {
           return `
@@ -47,9 +45,8 @@ function viteAlsPlugin(): ExtractPluginOption<NonNullable<ViteUserConfig['plugin
                 return authAsyncStorage.getStore();
               });
             }
-          `
+          `;
         }
-
         return `
           import { useSyncExternalStore } from 'react';
 
@@ -58,11 +55,12 @@ function viteAlsPlugin(): ExtractPluginOption<NonNullable<ViteUserConfig['plugin
 
             return useSyncExternalStore(store.listen, get, () => get());
           }
-        `
+        `;
       }
     }
-  }
+  };
 }
+
 
 // https://astro.build/config
 export default defineConfig({
@@ -71,7 +69,5 @@ export default defineConfig({
   vite: {
     plugins: [viteAlsPlugin()]
   },
-  adapter: node({
-    mode: "standalone"
-  })
+  adapter: vercel()
 });
